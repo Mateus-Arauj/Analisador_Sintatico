@@ -1,0 +1,10 @@
+VAR n, f;  
+BEGIN  
+  n <= 0;  
+  f <= 1;  
+  WHILE n # 16 do  
+  BEGIN  
+    n <= n + 1;  
+    f <= f * n;  
+  END;  
+END.

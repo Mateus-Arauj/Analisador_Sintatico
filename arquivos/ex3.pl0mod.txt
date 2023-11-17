@@ -1,0 +1,30 @@
+CONST max = 100;
+VAR arg, ret;
+
+PROCEDURE checkprime;
+VAR i;
+BEGIN
+  ret <- 1;
+  i <- 2;
+  WHILE i < arg DO
+  BEGIN
+    IF arg /? i THEN
+    BEGIN
+      ret <- 0;
+      i <- arg;
+    END;
+    i <- i + 1;
+  END;
+END;
+
+PROCEDURE primes;
+BEGIN
+  arg <- 2;
+  WHILE arg < max DO
+  BEGIN
+    CALL checkprime;
+    IF ret = 1 THEN PRINT arg;
+    arg <- arg + 1;
+  END;
+END;
+CALL primes.
