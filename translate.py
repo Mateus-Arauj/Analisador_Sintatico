@@ -21,10 +21,10 @@ class Parser:
     def match(self, expected_class, expected_value = None):
         #print(self.current_token.token_class, self.current_token.token_value)
         if expected_value == None and self.current_token.token_class == expected_class:
-            print('matching', self.current_token.token_class, self.current_token.token_value)
+            #print('matching', self.current_token.token_class, self.current_token.token_value)
             self.next_token()
         elif self.current_token and self.current_token.token_class == expected_class and self.current_token.token_value == expected_value:
-            print('matching', self.current_token.token_value)
+            #print('matching', self.current_token.token_value)
             self.next_token()
         elif self.current_token is None:
             raise SyntaxError(f"Expected {expected_class} with value {expected_value}, found end of file")
@@ -42,13 +42,13 @@ class Parser:
         return indented_code   
     
     def parse(self):
-        print("Starting syntactic analysis...")
-        print('-'*30)
+        #print("Starting syntactic analysis...")
+        #print('-'*30)
         program = self.program()
         self.py_code += program
         print(self.py_code)
-        print('-'*30)
-        print("Syntactic analysis successfully completed.")
+        #print('-'*30)
+        #print("Syntactic analysis successfully completed.")
 
     def program(self):
         """
@@ -193,14 +193,21 @@ class Parser:
             cond_code = self.condition()
             self.match(TokenClass(1),'THEN')
             statement += f"if {negation}{cond_code}:\n"
-            self.statement()
+            block_code = self.statement()
+            indented_block_code = self.indent_code(block_code)
+            statement += indented_block_code
         elif self.current_token.token_value == 'WHILE':
+            negation = ''
             self.match(TokenClass(1),'WHILE')
             if self.current_token.token_value == 'NOT':
+                negation = "not "
                 self.match(TokenClass(1),'NOT')
-            self.condition()
+            cond_code = self.condition()
+            statement += f"if {negation}{cond_code}:\n"
             self.match(TokenClass(1),'DO')
-            self.statement()
+            block_code = self.statement()
+            indented_block_code = self.indent_code(block_code)
+            statement += indented_block_code
         elif self.current_token.token_value == 'PRINT':
             self.match(TokenClass(1),'PRINT')
             self.expression()
@@ -212,10 +219,10 @@ class Parser:
         """
         compound_statement = '' 
         if self.current_token.token_value in ['CALL', 'BEGIN', 'IF', 'WHILE', 'PRINT'] or self.current_token.token_class == TokenClass(7):
-            print('-------------------------',self.current_token.token_value, self.current_token.token_class,'------------------------------------------')
+            #print('-------------------------',self.current_token.token_value, self.current_token.token_class,'------------------------------------------')
             compound_statement += self.statement()
             self.match(TokenClass(3),';')
-            self.compound_statement()
+            compound_statement += self.compound_statement()
         return compound_statement
         
 
@@ -225,16 +232,21 @@ class Parser:
                        | "EVEN" <expression>
                        | <expression> <relation> <expression>
         """
+        cond_code = ""
         if self.current_token.token_value == 'ODD':
             self.match(TokenClass(1),'ODD')
-            self.expression()
+            expr_code = self.expression()
+            cond_code = f"({expr_code} % 2 != 0)"
         elif self.current_token.token_value == 'EVEN':
             self.match(TokenClass(1),'EVEN')
-            self.expression()
+            expr_code = self.expression()
+            cond_code = f"({expr_code} % 2 == 0)"
         else:
-            self.expression()
-            self.relation()
-            self.expression()
+            left_expr = self.expression()
+            relation_op = self.relation()
+            right_expr = self.expression()
+            cond_code = f"{left_expr} {relation_op} {right_expr}"
+        return cond_code
 
     def relation(self):
         """
@@ -248,18 +260,25 @@ class Parser:
         """
         if self.current_token.token_value == '=':
             self.match(TokenClass(2), '=')
+            return '=='
         elif self.current_token.token_value == '#':
             self.match(TokenClass(2), '#')
+            return '#'
         elif self.current_token.token_value == '<':
             self.match(TokenClass(2), '<')
+            return '<'
         elif self.current_token.token_value == '<=':
             self.match(TokenClass(2), '<=')
+            return '<='
         elif self.current_token.token_value == '>':
             self.match(TokenClass(2), '>')
+            return '>'
         elif self.current_token.token_value == '>=':
             self.match(TokenClass(2), '>=')
+            return '>='
         elif self.current_token.token_value == '/?':
             self.match(TokenClass(2), '/?')
+            return '/?'
         else : 
              raise SyntaxError(f"Expected relation, found {self.current_token.token_class} with value {self.current_token.token_value}")
 
@@ -268,9 +287,12 @@ class Parser:
         """
         <expression>         --> <sign>? <term> <terms>?
         """
-        self.sign()
-        self.term()
-        self.terms()
+        expr_code = ''
+        expr_code += self.sign()
+        expr_code += self.term()
+        expr_code += self.terms()
+
+        return expr_code 
 
     def sign(self):
         """
@@ -279,16 +301,19 @@ class Parser:
         """
         if self.current_token.token_value == '+':
             self.match(TokenClass(2),'+')
+            return '+'
         elif self.current_token.token_value == '-':
             self.match(TokenClass(2), '-')
+            return '-'
 
     def term(self):
         """
         <term>               --> <factor> <factors>?
         """
-        self.factor()
-        self.factors()
-
+        term_code = ''
+        term_code += self.factor()
+        term_code += self.factors()
+        return term_code
 
     def terms(self):
         """
