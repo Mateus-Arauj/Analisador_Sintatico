@@ -32,9 +32,6 @@ class Parser:
             raise SyntaxError(f"Expected {expected_class} with value {expected_value}, found {self.current_token.token_class} with value {self.current_token.token_value}")  
         
     def indent_code(self, code):
-        """
-        Adiciona a indentação necessária ao código do bloco da função.
-        """
         indented_code = ""
         for line in code.split('\n'):
             if line.strip() != '':
@@ -81,7 +78,7 @@ class Parser:
         self.match(TokenClass(1),'CONST')
         constdecl =  self.constdecl()
         self.match(TokenClass(3),';')
-        return constdecl
+        return constdecl + '\n'
     
     def constdecl(self):
         """
@@ -105,7 +102,7 @@ class Parser:
         number = self.current_token.token_value
         self.match(TokenClass(4)) #INTEGER_CONSTANT
 
-        return f"{ident.upper()} = {number}\n"
+        return f"{ident.upper()} = {number}"
 
     def variables(self):
         """
@@ -114,7 +111,8 @@ class Parser:
         self.match(TokenClass(1),'VAR')
         var_code = self.vardecl()
         self.match(TokenClass(3),';')
-        return var_code
+        #return var_code
+        return ''
         
 
     def vardecl(self):
@@ -129,7 +127,8 @@ class Parser:
             vars_list.append(self.current_token.token_value)
             self.match(TokenClass(7)) #ID
         vars_string = ', '.join(vars_list)
-        return f"{vars_string} = None\n"
+        #return f"{vars_string} = None\n"
+        return ''
     
     def procedures(self):
         """
@@ -203,14 +202,16 @@ class Parser:
                 negation = "not "
                 self.match(TokenClass(1),'NOT')
             cond_code = self.condition()
-            statement += f"if {negation}{cond_code}:\n"
+            statement += f"while {negation}{cond_code}:\n"
             self.match(TokenClass(1),'DO')
             block_code = self.statement()
             indented_block_code = self.indent_code(block_code)
             statement += indented_block_code
         elif self.current_token.token_value == 'PRINT':
             self.match(TokenClass(1),'PRINT')
-            self.expression()
+            expression_code = self.expression()
+            statement += f"print({expression_code})\n"
+
         return statement
             
     def compound_statement(self):
@@ -243,9 +244,14 @@ class Parser:
             cond_code = f"({expr_code} % 2 == 0)"
         else:
             left_expr = self.expression()
-            relation_op = self.relation()
-            right_expr = self.expression()
-            cond_code = f"{left_expr} {relation_op} {right_expr}"
+            if self.current_token.token_value == '/?':
+                self.match(TokenClass(2), '/?')
+                right_expr = self.expression()
+                cond_code = f"{left_expr} % {right_expr} == 0"
+            else:
+                relation_op = self.relation()
+                right_expr = self.expression()
+                cond_code = f"{left_expr} {relation_op} {right_expr}"
         return cond_code
 
     def relation(self):
@@ -276,9 +282,9 @@ class Parser:
         elif self.current_token.token_value == '>=':
             self.match(TokenClass(2), '>=')
             return '>='
-        elif self.current_token.token_value == '/?':
-            self.match(TokenClass(2), '/?')
-            return '/?'
+        # elif self.current_token.token_value == '/?':
+        #     self.match(TokenClass(2), '/?')
+        #     return '%'
         else : 
              raise SyntaxError(f"Expected relation, found {self.current_token.token_class} with value {self.current_token.token_value}")
 
@@ -299,12 +305,16 @@ class Parser:
         <sign>               --> "+"
                                | "-"
         """
+        sign = ''
         if self.current_token.token_value == '+':
+            sign = self.current_token.token_value
             self.match(TokenClass(2),'+')
-            return '+'
+
         elif self.current_token.token_value == '-':
+            sign = self.current_token.token_value
             self.match(TokenClass(2), '-')
-            return '-'
+
+        return sign
 
     def term(self):
         """
@@ -313,6 +323,7 @@ class Parser:
         term_code = ''
         term_code += self.factor()
         term_code += self.factors()
+
         return term_code
 
     def terms(self):
@@ -320,30 +331,40 @@ class Parser:
         <terms>              --> "+" <term>
                                | "-" <term>
         """
+        terms_code = ''
         if self.current_token.token_value == '+':
+            sign = self.current_token.token_value
             self.match(TokenClass(2),'+')
-            self.term()
+            term_code = self.term()
+            terms_code = f" {sign} {term_code}"
+            
         elif self.current_token.token_value == '-':
+            sign = self.current_token.token_value
             self.match(TokenClass(2), '-')
-            self.term()
-
+            term_code = self.term()
+            terms_code = f" {sign} {term_code}"
+        return terms_code
+    
     def factor(self):
         """
         <factor>             --> <Ident>
                        | <Number>
                        | "(" <expression> ")"
         """
+        factor_code = ''
         if self.current_token.token_class == TokenClass(7):
+            factor_code = self.current_token.token_value
             self.match(TokenClass(7)) #ID
         elif self.current_token.token_class == TokenClass(4):
+            factor_code = str(self.current_token.token_value)
             self.match(TokenClass(4)) #INTEGER_CONSTANT
         elif self.current_token.token_value == '(':
             self.match(TokenClass(3),'(')
-            self.expression()
+            factor_code = '(' + self.expression() + ')'
             self.match(TokenClass(3),')')
         else: 
             raise SyntaxError(f"Expected factor, found {self.current_token.token_class} with value {self.current_token.token_value}")
-
+        return factor_code
     
     def factors(self):
         """
@@ -351,9 +372,15 @@ class Parser:
                        | "*" <factor>
 
         """
+        factors_code = ''
         if self.current_token.token_value == '/':
+            operator = self.current_token.token_value
             self.match(TokenClass(2), '/')
-            self.factor()
+            factor_code = self.factor()
+            factors_code = f" {operator} {factor_code}"
         elif self.current_token.token_value == '*':
+            operator = self.current_token.token_value
             self.match(TokenClass(2), '*')
-            self.factor()
+            factor_code = self.factor()
+            factors_code = f" {operator} {factor_code}"
+        return factors_code
