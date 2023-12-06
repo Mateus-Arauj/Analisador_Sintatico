@@ -1,6 +1,6 @@
 from lex import Lex
 import rules
-from syntactic_analyzer import Parser
+from translate import Parser
 from token_1 import TokenClass
 diretorio = './arquivos/'
 with open(diretorio + 'ex3.pl0mod.txt', 'r') as arquivo:
