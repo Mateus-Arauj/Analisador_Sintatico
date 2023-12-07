@@ -36,7 +36,7 @@ class Parser:
     def indent_code(self, code):
         indented_code = ""
         for line in code.split('\n'):
-            # print('|', line, '|')
+            #print(line)
             if line.strip() != '':
                 indented_code += "  " + line + "\n"
         return indented_code   
@@ -50,7 +50,9 @@ class Parser:
         #print('-'*30)
         program = self.program()
         self.py_code += program
+        print('-'*30,"Translated Code",'-'*30)
         print(self.py_code)
+        return self.py_code
         #print('-'*30)
         #print("Syntactic analysis successfully completed.")
 
@@ -109,7 +111,7 @@ class Parser:
         number = self.current_token.token_value
         self.match(TokenClass(4)) #INTEGER_CONSTANT
 
-        return f"{ident.upper()} = {number}"
+        return f"{ident} = {number}"
 
     def variables(self):
         """
@@ -142,7 +144,7 @@ class Parser:
         <procedures>         --> <procdecl> <procedures>
         """
         procedures = ''
-        self.code_top_flag = False #Para de adicionar variaveis globais para o vetor
+        self.code_top_flag = False #Stop adding global variables to the array
         procedures += self.procdecl()
         while self.current_token.token_value == 'PROCEDURE':
              procedures += self.procdecl()
@@ -161,7 +163,6 @@ class Parser:
         procdecl += f"def {proc_name}():\n"
         global_vars_decl = 'global ' + ', '.join(self.global_vars) + '\n' if self.global_vars else ''
         block_code = global_vars_decl
-        block_code += 'teste\n'
         block_code += self.block()
         indented_block_code = self.indent_code(block_code)
         self.match(TokenClass(3),';')
@@ -193,9 +194,9 @@ class Parser:
         elif self.current_token.token_value == 'BEGIN':
             self.match(TokenClass(1),'BEGIN')
             block_code = self.compound_statement()
-            indented_block_code = self.indent_code(block_code)
+            # indented_block_code = self.indent_code(block_code)
             self.match(TokenClass(1),'END')
-            statement += indented_block_code
+            statement += block_code
         elif self.current_token.token_value == 'IF':
             negation = ''
             self.match(TokenClass(1),'IF')

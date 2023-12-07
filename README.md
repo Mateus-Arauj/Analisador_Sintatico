@@ -1,1 +1,0 @@
-# Analisador_Sintatico
