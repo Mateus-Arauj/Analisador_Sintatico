@@ -7,6 +7,8 @@ class Parser:
        self.current_token = None
        self.list = list
        self.py_code = ""
+       self.global_vars = []
+       self.code_top_flag = True
        #print(list)
        self.next_token()
 
@@ -34,10 +36,15 @@ class Parser:
     def indent_code(self, code):
         indented_code = ""
         for line in code.split('\n'):
+            # print('|', line, '|')
             if line.strip() != '':
                 indented_code += "  " + line + "\n"
         return indented_code   
     
+    def add_global_variable(self, value): 
+        if self.code_top_flag:
+            self.global_vars.append(value)
+            
     def parse(self):
         #print("Starting syntactic analysis...")
         #print('-'*30)
@@ -120,11 +127,11 @@ class Parser:
         <vardecl> --> <Ident> "," <vardecl> | <Ident>
         """
         vars_list = []
-        vars_list.append(self.current_token.token_value)
+        self.add_global_variable(self.current_token.token_value)
         self.match(TokenClass(7)) #ID
         while self.current_token.token_value == ',':
             self.match(TokenClass(3), ',')
-            vars_list.append(self.current_token.token_value)
+            self.add_global_variable(self.current_token.token_value)
             self.match(TokenClass(7)) #ID
         vars_string = ', '.join(vars_list)
         #return f"{vars_string} = None\n"
@@ -135,6 +142,7 @@ class Parser:
         <procedures>         --> <procdecl> <procedures>
         """
         procedures = ''
+        self.code_top_flag = False #Para de adicionar variaveis globais para o vetor
         procedures += self.procdecl()
         while self.current_token.token_value == 'PROCEDURE':
              procedures += self.procdecl()
@@ -149,10 +157,15 @@ class Parser:
         proc_name = self.current_token.token_value
         self.match(TokenClass(7)) #ID
         self.match(TokenClass(3),';')
+
         procdecl += f"def {proc_name}():\n"
-        block_code = self.block()
+        global_vars_decl = 'global ' + ', '.join(self.global_vars) + '\n' if self.global_vars else ''
+        block_code = global_vars_decl
+        block_code += 'teste\n'
+        block_code += self.block()
         indented_block_code = self.indent_code(block_code)
         self.match(TokenClass(3),';')
+        
         procdecl += indented_block_code
         return procdecl
         
